@@ -9,6 +9,7 @@ pymysql = "*"
 python-dotenv = "*"
 djangorestframework = "*"
 djangorestframework-simplejwt = "*"
+django-cors-headers = "*"
 
 [dev-packages]
 

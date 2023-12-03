@@ -1,9 +1,15 @@
 from rest_framework.response import Response
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view , permission_classes
 from rest_framework.views import APIView
-from rest_framework.exceptions import AuthenticationFailed
+from rest_framework.exceptions import  ParseError
 from rest_framework_simplejwt.tokens import RefreshToken
-from . serializers import UserSerializer
+from rest_framework.permissions import IsAuthenticated
+from django.conf import settings
+from django.middleware import csrf
+from rest_framework_simplejwt.serializers import TokenRefreshSerializer
+from rest_framework_simplejwt.views import TokenRefreshView
+from rest_framework_simplejwt.exceptions import InvalidToken
+from . serializers import UserSerializer , AccountSerializer
 from . models import User
 
 @api_view(['GET'])
@@ -12,15 +18,38 @@ def getRoutes(request):
         "api/register",
         "api/login",
         "api/login/refresh",
-
+        "api/logout",
     ]
     return Response(routes)
 
+# get user tokes for current user
+def get_user_tokens(user):
+    refresh = RefreshToken.for_user(user)
+    return {
+        "refresh_token": str(refresh),
+        "access_token": str(refresh.access_token)
+    }
+
+# add tokens to cookies
+def cookie_adder(response , key , value , expire):
+    response.set_cookie(
+        key=key,
+        value=value,
+        expires=expire,
+        secure=settings.SIMPLE_JWT['AUTH_COOKIE_SECURE'],
+        httponly=settings.SIMPLE_JWT['AUTH_COOKIE_HTTP_ONLY'],
+        samesite=settings.SIMPLE_JWT['AUTH_COOKIE_SAMESITE']
+    )
+
+    return response
+
+@permission_classes([])
 class RegisterView(APIView):
     def post(self,request):
         try:
             email = request.data["email"]
             password = request.data['password']
+            conf_password = request.data['conf-password']
             user = User.objects.filter(email=email).first()
 
             # check email already exist or not
@@ -32,7 +61,14 @@ class RegisterView(APIView):
             # check password length 
             if len(password) < 8:
                 return Response({
-                "email" : "Password is too short"
+                "password" : "Password is too short"
+            })
+
+            # check password and confirm password is same or not
+            if password != conf_password:
+                return Response({
+                "password" : "Password and confirm password mismatch!",
+                "conf-password" : "Password and confirm password mismatch!"
             })
             
             serializer = UserSerializer(data=request.data)
@@ -46,6 +82,7 @@ class RegisterView(APIView):
                 "details":"error"
             })
     
+@permission_classes([])
 class LoginView(APIView):
     def post(self , request):
         try:
@@ -54,18 +91,95 @@ class LoginView(APIView):
             user = User.objects.filter(email=email).first()
 
             if user is None:
-                raise AuthenticationFailed("User not found")
+                return Response({"details":"Email or password is incorrect!"})
             
             if not user.check_password(password):
-                raise AuthenticationFailed("Incorrect password")
+                return Response({"details":"Email or password is incorrect!"})
             
-            refresh = RefreshToken.for_user(user)
-            return Response({
-                "detail":"success",
-                'refresh': str(refresh),
-                'access': str(refresh.access_token),
-            })
+            tokens = get_user_tokens(user)
+            res = Response()
+            res = cookie_adder(response=res , 
+                            key=settings.SIMPLE_JWT['AUTH_COOKIE_REFRESH'] , 
+                            value=tokens["refresh_token"] , 
+                            expire=settings.SIMPLE_JWT['REFRESH_TOKEN_LIFETIME']
+                        )
+            res = cookie_adder(response=res , 
+                    key=settings.SIMPLE_JWT['AUTH_COOKIE_CSRF'] , 
+                    value=csrf.get_token(request) , 
+                    expire=settings.SIMPLE_JWT['REFRESH_TOKEN_LIFETIME']
+                    )
+            res.data = {"detail":"success",
+                        "access":tokens["access_token"],
+                        "csrf":csrf.get_token(request) }
+            res["X-CSRFToken"] = csrf.get_token(request)
+            return res
+ 
         except KeyError:
             return Response({
                 "details":"error"
             })
+
+@permission_classes([IsAuthenticated])
+class LogoutView(APIView):
+    def post(self,request):
+        try:
+            refreshToken = request.COOKIES.get(
+                settings.SIMPLE_JWT['AUTH_COOKIE_REFRESH'])
+            token = RefreshToken(refreshToken)
+            token.blacklist()
+
+            res = Response()
+            res.delete_cookie(settings.SIMPLE_JWT['AUTH_COOKIE_REFRESH'])
+            res.delete_cookie("csrftoken")
+            res["X-CSRFToken"]=None
+            
+            res.data = {"detail":"success"}
+            return res
+        except:
+            raise ParseError("Invalid token")
+    
+class CookieTokenRefreshSerializer(TokenRefreshSerializer):
+    refresh = None
+
+    def validate(self, attrs):
+        attrs['refresh'] = self.context['request'].COOKIES.get('refresh')
+        if attrs['refresh']:
+            return super().validate(attrs)
+        else:
+            raise InvalidToken(
+                'No valid token found in cookie refresh')
+
+class CookieTokenRefreshView(TokenRefreshView):
+    serializer_class = CookieTokenRefreshSerializer
+
+    @permission_classes([IsAuthenticated])
+    def finalize_response(self, request,response, *args, **kwargs):
+        if response.data.get("refresh"):
+            response = cookie_adder(response=response , 
+                            key=settings.SIMPLE_JWT['AUTH_COOKIE_REFRESH'] , 
+                            value=response.data['refresh'] , 
+                            expire=settings.SIMPLE_JWT['REFRESH_TOKEN_LIFETIME']
+                        )
+            response = cookie_adder(response=response , 
+                            key=settings.SIMPLE_JWT['AUTH_COOKIE_CSRF'] , 
+                            value=request.COOKIES.get("csrftoken") , 
+                            expire=settings.SIMPLE_JWT['REFRESH_TOKEN_LIFETIME']
+                        )
+            response.data = {"detail":"success" ,
+                              "access":response.data["access"] ,
+                              "csrf":request.COOKIES.get("csrftoken")}
+
+        response["X-CSRFToken"] = request.COOKIES.get("csrftoken")
+        return super().finalize_response(request, response ,*args, **kwargs)
+
+class GetUser(APIView):
+    @permission_classes([IsAuthenticated])
+    def get(self ,request):
+        try:
+            user = User.objects.get(email = request.user.email)
+            print(request.user)
+        except User.DoesNotExist:
+            return Response({"details" : "User not found"})
+
+        serializer = AccountSerializer(user)
+        return Response(serializer.data)
