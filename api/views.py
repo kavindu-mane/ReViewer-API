@@ -6,7 +6,6 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.permissions import IsAuthenticated
 from django.conf import settings
 from django.middleware import csrf
-from datetime import datetime
 from django.utils import timezone
 from rest_framework_simplejwt.serializers import TokenRefreshSerializer
 from rest_framework_simplejwt.views import TokenRefreshView
@@ -97,6 +96,9 @@ class LoginView(APIView):
             if not user.check_password(password):
                 return Response({"details":"Email or password is incorrect!"})
             
+            if not user.is_active:
+                return Response({"details":"This account is disabled!"})
+            
             tokens = get_user_tokens(user)
             res = Response()
             expiration_date = None
@@ -120,7 +122,8 @@ class LoginView(APIView):
                         )
             res.data = {"detail":"success",
                         "access":tokens["access_token"],
-                        "csrf":csrf.get_token(request) }
+                        "csrf":csrf.get_token(request) ,
+                        "status":user.is_superuser}
             res["X-CSRFToken"] = csrf.get_token(request)
             return res
  
