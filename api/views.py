@@ -204,3 +204,10 @@ class GetUser(APIView):
 
         serializer = AccountSerializer(user)
         return Response(serializer.data)
+
+@permission_classes([IsAuthenticated])
+class WhoIAm(APIView):
+    def get(self , request):
+        return(Response({
+            "details":request.user.is_superuser
+        }))

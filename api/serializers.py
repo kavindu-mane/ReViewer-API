@@ -23,4 +23,4 @@ class UserSerializer(serializers.ModelSerializer):
 class AccountSerializer(serializers.ModelSerializer):
     class Meta:
         model = get_user_model()
-        fields = ("name", "email","birth_date")
+        fields = ("name", "email","birth_date","avatar")

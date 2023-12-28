@@ -1,12 +1,13 @@
 from rest_framework.views import APIView
 from django.db.models import Q
-from . models import User
-from . serializers_admin import UserAccountSerializer
+from . models import User , Book
+from . serializers_admin import UserAccountSerializer , BookSerializer
 from django.core.paginator import Paginator
 from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied
-from rest_framework.decorators import  permission_classes
+from rest_framework.decorators import  permission_classes , parser_classes
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.parsers import MultiPartParser , FormParser
 
 @permission_classes([IsAuthenticated])
 class getUsers(APIView):
@@ -46,5 +47,32 @@ class changeUserStatus(APIView):
             return Response({
                 "details":"success"
             })
+        else:
+            raise PermissionDenied({"details":"You don't have permission to this action."})
+        
+@permission_classes([IsAuthenticated])
+@parser_classes([MultiPartParser , FormParser])
+class addNewBook(APIView):
+    def post(self,request):
+        if request.user.is_superuser:
+            try:
+                isbn = request.data["isbn"]
+                book = Book.objects.filter(isbn=isbn).first()
+
+                # check isbn already exist or not
+                if book is not None:
+                    return Response({
+                    "isbn" : "This isbn already registered"
+                })
+                serializer = BookSerializer(data=request.data)
+                serializer.is_valid(raise_exception=True)
+                serializer.save()
+                return Response({
+                    "details" : "success"
+                })
+            except KeyError:
+                return Response({
+                    "details":"error"
+                })
         else:
             raise PermissionDenied({"details":"You don't have permission to this action."})
