@@ -1,7 +1,8 @@
 from rest_framework.views import APIView
 from django.db.models import Q
 from . models import User , Book
-from . serializers_admin import UserAccountSerializer , BookSerializer
+from . serializers_admin import  BookSerializer
+from . serializers import AccountSerializer
 from django.core.paginator import Paginator
 from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied
@@ -9,6 +10,9 @@ from rest_framework.decorators import  permission_classes , parser_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.parsers import MultiPartParser , FormParser
 
+# get users view : this view return users with paginations and reaech terms
+# only accessible for admin
+# serializer : AccountSerializer in serializers.py
 @permission_classes([IsAuthenticated])
 class getUsers(APIView):
     def post(self,request):
@@ -24,7 +28,7 @@ class getUsers(APIView):
 
             paginator = Paginator(users, 25)
             paginated_users = paginator.get_page(page)
-            serializer = UserAccountSerializer(paginated_users , many = True)
+            serializer = AccountSerializer(paginated_users , many = True)
             return Response({"users":serializer.data , 
                             "meta":{
                                 "count":paginator.count , 
@@ -35,7 +39,9 @@ class getUsers(APIView):
                             })
         else:
             raise PermissionDenied({"details":"You don't have permission to this action."})
-        
+
+# chnage user status : admin can user account activate or deactivate through this
+# only accessible for admin
 @permission_classes([IsAuthenticated])
 class changeUserStatus(APIView):
     def post(self,request):
@@ -49,7 +55,11 @@ class changeUserStatus(APIView):
             })
         else:
             raise PermissionDenied({"details":"You don't have permission to this action."})
-        
+
+# add new book view : admin can add new book with this view.
+# only accessible for admin
+# it will return success , error or raise PermissionDenied exception
+# serializer : BookSerializer in serializers_admin.py
 @permission_classes([IsAuthenticated])
 @parser_classes([MultiPartParser , FormParser])
 class addNewBook(APIView):

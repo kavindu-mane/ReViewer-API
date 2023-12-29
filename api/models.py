@@ -1,9 +1,11 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 
+# upload file with renaming files
 def upload_to(instance, filename):
     return 'books/{filename}.{ext}'.format(filename=instance.pk , ext = filename.split('.')[-1])
 
+# user model : its override the djangp abstract user
 class User(AbstractUser):
     email= models.EmailField(max_length=200 , primary_key=True)
     name = models.CharField(max_length=256)
@@ -18,6 +20,7 @@ class User(AbstractUser):
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = [name , email , password]
 
+# book model
 class Book(models.Model):
     isbn = models.CharField(max_length = 50 , primary_key = True)
     title = models.CharField(max_length = 256)
@@ -31,4 +34,5 @@ class Book(models.Model):
     reviews_score = models.PositiveSmallIntegerField(default = 0)
     cover_image = models.ImageField(upload_to=upload_to , default="books/default.png")
 
+    REQUIRED_FIELDS = [isbn , title , author , category , pubyear , language , price , description]
 

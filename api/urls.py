@@ -1,13 +1,15 @@
 from django.urls import path ,include
-from . views import RegisterView , LoginView , LogoutView , getRoutes , CookieTokenRefreshView , GetUser , WhoIAm
+from . views import *
 
 urlpatterns = [
+    # if url contains /api those all are redirected to below views
     path('', getRoutes),
     path('register', RegisterView.as_view()),
     path('login', LoginView.as_view()),
-    path('user', GetUser.as_view()),
+    path('user', GetUserView.as_view()),
     path('login/refresh', CookieTokenRefreshView.as_view()),
     path('logout', LogoutView.as_view()),
-    path('whoiam', WhoIAm.as_view()),
+    path('whoiam', WhoIAmView.as_view()),
+    # if url contains api/admin thos urls redirected to admin url pattern file
     path('admin/', include('api.urls_admin')),
 ]

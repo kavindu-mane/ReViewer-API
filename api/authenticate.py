@@ -3,6 +3,7 @@ from django.conf import settings
 from rest_framework.authentication import CSRFCheck
 from rest_framework.exceptions import PermissionDenied
 
+# enforcing the csrf : if csrf failed it will raise PermissionDenied exception
 def enforce_csrf(request):
     check = CSRFCheck(request)
     reason = check.process_view(request, None, (), {})

@@ -7,11 +7,12 @@ from rest_framework.permissions import IsAuthenticated
 from django.conf import settings
 from django.middleware import csrf
 from django.utils import timezone
-from rest_framework_simplejwt.serializers import TokenRefreshSerializer
 from rest_framework_simplejwt.views import TokenRefreshView
-from rest_framework_simplejwt.exceptions import InvalidToken
-from . serializers import UserSerializer , AccountSerializer
+from . serializers import UserSerializer , AccountSerializer , CookieTokenRefreshSerializer
 from . models import User
+
+# in this system use JWT tokens for authentications
+# for more details about authentication in this project please see authenticate.py custom authentication file.
 
 @api_view(['GET'])
 def getRoutes(request):
@@ -44,6 +45,8 @@ def cookie_adder(response , key , value , expire):
 
     return response
 
+# register view : user registration request comes to this view. this view return success or flagged error for front-end
+# serializer : UserSerializer in serializers.py
 @permission_classes([])
 class RegisterView(APIView):
     def post(self,request):
@@ -81,7 +84,10 @@ class RegisterView(APIView):
             return Response({
                 "details":"error"
             })
-    
+
+# login view : all users and admin login the system via this view. if user creadential valied this this function do below task.
+# create cookies for refresh token , csrf token and remember cookie (if user need remember me function)
+# this function return response with access token , csrf and user role is admin or not (if admin , return true otherwise false)
 @permission_classes([])
 class LoginView(APIView):
     def post(self , request):
@@ -132,6 +138,8 @@ class LoginView(APIView):
                 "details":"error"
             })
 
+# logout view : all users logout via this view. in this view remove all cookies and blacklist current refresh token.
+# response task success or if flagged any exception raise parse error
 @permission_classes([IsAuthenticated])
 class LogoutView(APIView):
     def post(self,request):
@@ -151,22 +159,13 @@ class LogoutView(APIView):
             return res
         except:
             raise ParseError("Invalid token")
-    
-class CookieTokenRefreshSerializer(TokenRefreshSerializer):
-    refresh = None
 
-    def validate(self, attrs):
-        attrs['refresh'] = self.context['request'].COOKIES.get('refresh')
-        if attrs['refresh']:
-            return super().validate(attrs)
-        else:
-            raise InvalidToken(
-                'No valid token found in cookie refresh')
-
+# tooken refresh view : this view refresh access and refresh tokens. because access token expire every 5 minute.
+# serializer : CookieTokenRefreshSerializer in serializers.py
+@permission_classes([IsAuthenticated])
 class CookieTokenRefreshView(TokenRefreshView):
     serializer_class = CookieTokenRefreshSerializer
 
-    @permission_classes([IsAuthenticated])
     def finalize_response(self, request,response, *args, **kwargs):
         if response.data.get("refresh"):
             expiration_date = None
@@ -194,8 +193,10 @@ class CookieTokenRefreshView(TokenRefreshView):
         response["X-CSRFToken"] = request.COOKIES.get("csrftoken")
         return super().finalize_response(request, response ,*args, **kwargs)
  
+# get user view : this view return user basic details.
+# serializer : AccountSerializer in serializers.py
 @permission_classes([IsAuthenticated])
-class GetUser(APIView):
+class GetUserView(APIView):
     def get(self ,request):
         try:
             user = User.objects.get(email = request.user.email)
@@ -205,8 +206,9 @@ class GetUser(APIView):
         serializer = AccountSerializer(user)
         return Response(serializer.data)
 
+# who i am view : this view return if current user have admin privilage or not.
 @permission_classes([IsAuthenticated])
-class WhoIAm(APIView):
+class WhoIAmView(APIView):
     def get(self , request):
         return(Response({
             "details":request.user.is_superuser

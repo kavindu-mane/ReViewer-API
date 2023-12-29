@@ -2,11 +2,7 @@ from rest_framework import serializers
 from . models import Book
 from django.contrib.auth import get_user_model
 
-class UserAccountSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = get_user_model()
-        fields = ("name", "email","birth_date")
-
+# book serializer : this one use for adding all functions related to books
 class BookSerializer(serializers.ModelSerializer):
     class Meta:
         model= Book

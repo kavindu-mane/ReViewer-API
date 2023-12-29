@@ -1,7 +1,10 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
+from rest_framework_simplejwt.serializers import TokenRefreshSerializer
+from rest_framework_simplejwt.exceptions import InvalidToken
 from . models import User
 
+# user serializer : this use for user regiatrations
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model= User
@@ -19,8 +22,21 @@ class UserSerializer(serializers.ModelSerializer):
             instance.set_password(password)
         instance.save()
         return instance
-    
+
+# account serializer : this use for all acoount activities except user registrations
 class AccountSerializer(serializers.ModelSerializer):
     class Meta:
         model = get_user_model()
         fields = ("name", "email","birth_date","avatar")
+
+# cookie refresh serializer : this one use for refresh access tokens (JWT) using refrsh tokens
+class CookieTokenRefreshSerializer(TokenRefreshSerializer):
+    refresh = None
+
+    def validate(self, attrs):
+        attrs['refresh'] = self.context['request'].COOKIES.get('refresh')
+        if attrs['refresh']:
+            return super().validate(attrs)
+        else:
+            raise InvalidToken(
+                'No valid token found in cookie refresh')
