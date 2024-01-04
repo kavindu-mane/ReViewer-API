@@ -162,7 +162,6 @@ class LogoutView(APIView):
 
 # tooken refresh view : this view refresh access and refresh tokens. because access token expire every 5 minute.
 # serializer : CookieTokenRefreshSerializer in serializers.py
-@permission_classes([IsAuthenticated])
 class CookieTokenRefreshView(TokenRefreshView):
     serializer_class = CookieTokenRefreshSerializer
 
