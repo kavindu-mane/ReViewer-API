@@ -2,7 +2,7 @@ from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from rest_framework_simplejwt.serializers import TokenRefreshSerializer
 from rest_framework_simplejwt.exceptions import InvalidToken
-from . models import User
+from . models import User , Book
 
 # user serializer : this use for user regiatrations
 class UserSerializer(serializers.ModelSerializer):
@@ -40,3 +40,10 @@ class CookieTokenRefreshSerializer(TokenRefreshSerializer):
         else:
             raise InvalidToken(
                 'No valid token found in cookie refresh')
+        
+# book serializer : this use for get search results and return minimun book details
+class BookSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Book
+        fields = ("isbn", "title","author")
+

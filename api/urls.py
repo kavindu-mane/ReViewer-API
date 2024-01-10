@@ -10,6 +10,7 @@ urlpatterns = [
     path('login/refresh', CookieTokenRefreshView.as_view()),
     path('logout', LogoutView.as_view()),
     path('whoiam', WhoIAmView.as_view()),
+    path('search', SearchBookView.as_view()),
     # if url contains api/admin thos urls redirected to admin url pattern file
     path('admin/', include('api.urls_admin')),
 ]

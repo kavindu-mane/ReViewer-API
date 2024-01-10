@@ -6,10 +6,12 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.permissions import IsAuthenticated
 from django.conf import settings
 from django.middleware import csrf
+from django.core.paginator import Paginator
 from django.utils import timezone
+from django.db.models import Q
 from rest_framework_simplejwt.views import TokenRefreshView
-from . serializers import UserSerializer , AccountSerializer , CookieTokenRefreshSerializer
-from . models import User
+from . serializers import UserSerializer , AccountSerializer , CookieTokenRefreshSerializer , BookSerializer
+from . models import User , Book
 
 # in this system use JWT tokens for authentications
 # for more details about authentication in this project please see authenticate.py custom authentication file.
@@ -212,3 +214,14 @@ class WhoIAmView(APIView):
         return(Response({
             "details":request.user.is_superuser
         }))
+    
+# get book details view : this view return book details.
+class SearchBookView(APIView):
+    def get(self,request): 
+        search = request.data["search"]
+        books = Book.objects.filter(Q(title__icontains=search) | Q(author__icontains=search) | Q(isbn__icontains=search)).order_by("title")
+
+        paginator = Paginator(books, 10)
+        paginated_books = paginator.get_page(1)
+        serializer = BookSerializer(paginated_books , many = True)
+        return Response({"users":serializer.data })
