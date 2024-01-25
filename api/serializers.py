@@ -47,6 +47,7 @@ class BookSerializer(serializers.ModelSerializer):
     class Meta:
         model = Book
         fields = ("isbn", "title","author")
+
 #get name,birthday and email details 
 class UserProfileUpdateSerializer(serializers.ModelSerializer):
     class Meta:
@@ -65,13 +66,11 @@ class ChangePasswordSerializer(serializers.Serializer):
     conf_password = serializers.CharField(write_only=True, required=True)
 
     def validate(self, data):
-        #current_password = data.get('current_password')
         new_password = data.get('new_password')
         conf_password = data.get('conf_password')
 
         user = self.context['request'].user
 
-       
         # Check if the new password and confirm password match
         if new_password != conf_password:
             raise serializers.ValidationError({"details": "New password and confirm password do not match"})

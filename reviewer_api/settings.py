@@ -41,7 +41,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'rest_framework_simplejwt.token_blacklist',
 
-    'api.apps.ApiConfig',
+    'api',
 ]
 
 REST_FRAMEWORK = {
@@ -188,13 +188,13 @@ USE_TZ = True
 
 
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000"
+    "http://localhost:3000","http://localhost:4173"
 ]
 CORS_ALLOW_CREDENTIALS = True
 CSRF_COOKIE_SECURE = False
 CSRF_COOKIE_HTTP_ONLY = True
 CSRF_TRUSTED_ORIGINS = [
-    "http://localhost:3000"
+    "http://localhost:3000","http://localhost:4173"
 ]
 CORS_EXPOSE_HEADERS = ["Content-Type", "X-CSRFToken"]
 SESSION_COOKIE_SECURE = True

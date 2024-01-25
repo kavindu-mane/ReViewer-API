@@ -228,6 +228,7 @@ class SearchBookView(APIView):
         return Response({"users":serializer.data })
         
 #update email,birthday and name
+@permission_classes([IsAuthenticated])
 class DetailUpdateProfile(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -252,10 +253,12 @@ class DetailUpdateProfile(APIView):
                 "details": "error"
             })
  
- #update password
-class ChangePasswordView(APIView):
-    permission_classes = [IsAuthenticated]
 
+
+ #update password
+
+@permission_classes([IsAuthenticated])
+class ChangePasswordView(APIView):
     def put(self, request):
         serializer = ChangePasswordSerializer(data=request.data, context={'request': request})
         if serializer.is_valid():
