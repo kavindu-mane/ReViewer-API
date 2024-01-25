@@ -12,7 +12,7 @@ from django.db.models import Q
 from rest_framework_simplejwt.views import TokenRefreshView
 from . serializers import UserProfileUpdateSerializer,ChangePasswordSerializer, UserSerializer , AccountSerializer , CookieTokenRefreshSerializer , BookSerializer
 from . models import User , Book
-from rest_framework import serializers
+from rest_framework import status
 
 # in this system use JWT tokens for authentications
 # for more details about authentication in this project please see authenticate.py custom authentication file.
@@ -227,46 +227,18 @@ class SearchBookView(APIView):
         serializer = BookSerializer(paginated_books , many = True)
         return Response({"users":serializer.data })
         
-#update email,birthday and name
+
+# change basic info view : this view change user name birth date.
+# serializer : user serializer in serializers.py
 @permission_classes([IsAuthenticated])
-class DetailUpdateProfile(APIView):
-    permission_classes = [IsAuthenticated]
-
+class UpdateBasic(APIView):
     def put(self, request):
-        try:
-            email = request.data.get("email")
-            user = User.objects.filter(email=email).first()
-
-            # Check if the email already exists
-            if user is not None:
-                return Response({"email": "This email is already registered"})
-
-            # Update the user profile
-            serializer = UserProfileUpdateSerializer(request.user, data=request.data, partial=True)
-            serializer.is_valid(raise_exception=True)
-            serializer.save()
-
-            return Response({"details": "successfully"})
-
-        except KeyError:
-             return Response({
-                "details": "error"
-            })
- 
-
-
- #update password
-
-@permission_classes([IsAuthenticated])
-class ChangePasswordView(APIView):
-    def put(self, request):
-        serializer = ChangePasswordSerializer(data=request.data, context={'request': request})
-        if serializer.is_valid():
-            # Update the user's password
-            user = request.user
-            user.set_password(serializer.validated_data['new_password'])
-            user.save()
-            
-            return Response({"details": "Password changed successfully"})
-        else:
-            return Response(serializer.errors)
+        instance = User.objects.get(email = request.user.email)
+        serializer = UserSerializer(
+            instance,
+            data=request.data,
+            partial=True
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(status=status.HTTP_200_OK)
