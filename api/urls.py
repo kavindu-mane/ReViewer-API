@@ -5,6 +5,8 @@ urlpatterns = [
     # if url contains /api those all are redirected to below views
     path('', getRoutes),
     path('register', RegisterView.as_view()),
+    path('profile_update', DetailUpdateProfile.as_view()),
+    path('profile_password', ChangePasswordView.as_view()),
     path('login', LoginView.as_view()),
     path('user', GetUserView.as_view()),
     path('login/refresh', CookieTokenRefreshView.as_view()),
