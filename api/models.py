@@ -36,3 +36,9 @@ class Book(models.Model):
 
     REQUIRED_FIELDS = [isbn , title , author , category , pubyear , language , price , description]
 
+# wish list model
+class WishList(models.Model):
+    id = models.AutoField(primary_key = True)
+    isbn = models.CharField(max_length = 50)
+    email= models.EmailField(max_length=200)
+
