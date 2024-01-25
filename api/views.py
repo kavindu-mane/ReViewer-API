@@ -218,8 +218,7 @@ class WhoIAmView(APIView):
     
 # get book details view : this view return book details.
 class SearchBookView(APIView):
-    def get(self,request): 
-        search = request.data["search"]
+    def get(self,request , search): 
         books = Book.objects.filter(Q(title__icontains=search) | Q(author__icontains=search) | Q(isbn__icontains=search)).order_by("title")
 
         paginator = Paginator(books, 10)
