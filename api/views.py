@@ -10,8 +10,9 @@ from django.core.paginator import Paginator
 from django.utils import timezone
 from django.db.models import Q
 from rest_framework_simplejwt.views import TokenRefreshView
-from . serializers import UserSerializer , AccountSerializer , CookieTokenRefreshSerializer , BookSerializer
+from . serializers import UserProfileUpdateSerializer,ChangePasswordSerializer, UserSerializer , AccountSerializer , CookieTokenRefreshSerializer , BookSerializer
 from . models import User , Book
+from rest_framework import status
 
 # in this system use JWT tokens for authentications
 # for more details about authentication in this project please see authenticate.py custom authentication file.
@@ -225,3 +226,19 @@ class SearchBookView(APIView):
         paginated_books = paginator.get_page(1)
         serializer = BookSerializer(paginated_books , many = True)
         return Response({"users":serializer.data })
+        
+
+# change basic info view : this view change user name birth date.
+# serializer : user serializer in serializers.py
+@permission_classes([IsAuthenticated])
+class UpdateBasic(APIView):
+    def put(self, request):
+        instance = User.objects.get(email = request.user.email)
+        serializer = UserSerializer(
+            instance,
+            data=request.data,
+            partial=True
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(status=status.HTTP_200_OK)
