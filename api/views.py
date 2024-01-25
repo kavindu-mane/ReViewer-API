@@ -10,8 +10,9 @@ from django.core.paginator import Paginator
 from django.utils import timezone
 from django.db.models import Q
 from rest_framework_simplejwt.views import TokenRefreshView
-from . serializers import UserSerializer , AccountSerializer , CookieTokenRefreshSerializer , BookSerializer
+from . serializers import UserProfileUpdateSerializer,ChangePasswordSerializer, UserSerializer , AccountSerializer , CookieTokenRefreshSerializer , BookSerializer
 from . models import User , Book
+from rest_framework import serializers
 
 # in this system use JWT tokens for authentications
 # for more details about authentication in this project please see authenticate.py custom authentication file.
@@ -225,3 +226,44 @@ class SearchBookView(APIView):
         paginated_books = paginator.get_page(1)
         serializer = BookSerializer(paginated_books , many = True)
         return Response({"users":serializer.data })
+        
+#update email,birthday and name
+class DetailUpdateProfile(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def put(self, request):
+        try:
+            email = request.data.get("email")
+            user = User.objects.filter(email=email).first()
+
+            # Check if the email already exists
+            if user is not None:
+                return Response({"email": "This email is already registered"})
+
+            # Update the user profile
+            serializer = UserProfileUpdateSerializer(request.user, data=request.data, partial=True)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+
+            return Response({"details": "successfully"})
+
+        except KeyError:
+             return Response({
+                "details": "error"
+            })
+ 
+ #update password
+class ChangePasswordView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def put(self, request):
+        serializer = ChangePasswordSerializer(data=request.data, context={'request': request})
+        if serializer.is_valid():
+            # Update the user's password
+            user = request.user
+            user.set_password(serializer.validated_data['new_password'])
+            user.save()
+            
+            return Response({"details": "Password changed successfully"})
+        else:
+            return Response(serializer.errors)
