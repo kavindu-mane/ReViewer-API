@@ -241,3 +241,60 @@ class UpdateBasic(APIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(status=status.HTTP_200_OK)
+    
+#Add Books to Wishlist
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def add_to_wishlist(request):
+    try:
+        book_id = request.data.get("book_id")
+        book = Book.objects.get(pk=book_id)
+        wishlist_item, created = WishList.objects.get_or_create(user=request.user, book=book)
+        if not created:
+            return Response({"detail": "Book already in wishlist"})
+        serializer = WishListSerializer(wishlist_item)
+        return Response({"detail": "Book added to wishlist", "wishlist_item": serializer.data})
+    except Book.DoesNotExist:
+        return Response({"detail": "Book not found"})
+    
+#Get Wishlist Status for a Book
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_wishlist_status(request, book_id):
+    try:
+        book = Book.objects.get(pk=book_id)
+        wishlist_item = WishList.objects.filter(user=request.user, book=book).first()
+        if wishlist_item:
+            return Response({"is_in_wishlist": True})
+        else:
+            return Response({"is_in_wishlist": False})
+    except Book.DoesNotExist:
+        return Response({"detail": "Book not found"})
+    
+
+#Remove Book from Wishlist
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def remove_from_wishlist(request):
+    try:
+        book_id = request.data.get("book_id")
+        book = Book.objects.get(pk=book_id)
+        wishlist_item = WishList.objects.filter(user=request.user, book=book).first()
+        if wishlist_item:
+            wishlist_item.delete()
+            return Response({"detail": "Book removed from wishlist"})
+        else:
+            return Response({"detail": "Book not found in wishlist"})
+    except Book.DoesNotExist:
+        return Response({"detail": "Book not found"})
+
+#Get Books details   
+@api_view(['GET'])
+def get_book_details(request, isbn):
+    try:
+        book = Book.objects.get(isbn=isbn)
+    except Book.DoesNotExist:
+        return Response({"error": "Book not found"}, status=status.HTTP_404_NOT_FOUND)
+
+    serializer = BookSerializer(book)
+    return Response(serializer.data, status=status.HTTP_200_OK)
