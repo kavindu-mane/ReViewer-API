@@ -3,7 +3,7 @@ from django.contrib.auth import get_user_model
 from rest_framework_simplejwt.serializers import TokenRefreshSerializer
 from django.contrib.auth.password_validation import validate_password
 from rest_framework_simplejwt.exceptions import InvalidToken
-from . models import User , Book
+from . models import User , Book, WishList
 
 # user serializer : this use for user regiatrations
 class UserSerializer(serializers.ModelSerializer):
@@ -83,3 +83,9 @@ class ChangePasswordSerializer(serializers.Serializer):
         validate_password(new_password)
 
         return data
+    
+# WishList serializer
+class WishListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = WishList
+        fields = ['id', 'user', 'book']
