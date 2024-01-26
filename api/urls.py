@@ -14,10 +14,11 @@ urlpatterns = [
     path('logout/', LogoutView.as_view()),
     path('whoiam/', WhoIAmView.as_view()),
     path('search/<str:search>/', SearchBookView.as_view()),
-    path('add-to-wishlist', add_to_wishlist),
+    path('add-to-wishlist/', add_to_wishlist),
     path('books/<str:isbn>/', get_book_details),
     path('wishlist/<int:book_id>/status/', get_wishlist_status),
     path('wishlist/remove/', remove_from_wishlist),
     # if url contains api/admin thos urls redirected to admin url pattern file
     path('admin/', include('api.urls_admin')),
+
 ]

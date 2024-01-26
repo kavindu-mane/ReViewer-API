@@ -32,7 +32,6 @@
             "index": "pypi",
             "markers": "python_version >= '3.10'",
             "version": "==5.0.1"
-
         },
         "django-cors-headers": {
             "hashes": [
