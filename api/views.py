@@ -10,8 +10,8 @@ from django.core.paginator import Paginator
 from django.utils import timezone
 from django.db.models import Q
 from rest_framework_simplejwt.views import TokenRefreshView
-from . serializers import UserProfileUpdateSerializer,ChangePasswordSerializer, UserSerializer , AccountSerializer , CookieTokenRefreshSerializer , BookSerializer
-from . models import User , Book
+from . serializers import UserProfileUpdateSerializer,ChangePasswordSerializer, UserSerializer , AccountSerializer , CookieTokenRefreshSerializer , BookSerializer, WishListSerializer
+from . models import User , Book, WishList
 from rest_framework import status
 
 # in this system use JWT tokens for authentications
