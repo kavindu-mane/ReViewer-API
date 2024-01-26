@@ -18,7 +18,7 @@ urlpatterns = [
     path('books/<str:isbn>/', get_book_details),
     path('wishlist/<int:book_id>/status/', get_wishlist_status),
     path('wishlist/remove/', remove_from_wishlist),
-    # if url contains api/admin thos urls redirected to admin url pattern file
+    # if url contains api/admin those urls redirected to admin url pattern file
     path('admin/', include('api.urls_admin')),
 
 ]

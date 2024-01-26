@@ -10,7 +10,7 @@ from rest_framework.decorators import  permission_classes , parser_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.parsers import MultiPartParser , FormParser
 
-# get users view : this view return users with paginations and reaech terms
+# get users view : this view return users with paginations
 # only accessible for admin
 # serializer : AccountSerializer in serializers.py
 @permission_classes([IsAuthenticated])
@@ -39,6 +39,37 @@ class getUsers(APIView):
                             })
         else:
             raise PermissionDenied({"details":"You don't have permission to this action."})
+
+# get books view : this view return books with paginations
+# only accessible for admin
+# serializer : BookSerializer in serializers.py
+@permission_classes([IsAuthenticated])
+class getBooks(APIView):
+    def post(self,request):
+        if request.user.is_superuser:
+            page = request.data["page"]
+            search = None;
+            if "search" not in request.data or request.data["search"] == "":
+                books = Book.objects.order_by("title")
+            else:
+                search = request.data["search"]
+                books = Book.objects.filter(Q(title__icontains=search) | Q(author__icontains=search) | Q(isbn__icontains=search)).order_by("title")
+
+            paginator = Paginator(books, 10)
+            paginated_books = paginator.get_page(page)
+            serializer = BookSerializer(paginated_books , many = True)
+
+            return Response({"books":serializer.data , 
+                            "meta":{
+                                "count":paginator.count , 
+                                "page_count":paginator.num_pages,
+                                "start":paginated_books.start_index(),
+                                "end":paginated_books.end_index()
+                                }
+                            })
+        else:
+            raise PermissionDenied({"details":"You don't have permission to this action."})
+
 
 # chnage user status : admin can user account activate or deactivate through this
 # only accessible for admin
