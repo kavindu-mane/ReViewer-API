@@ -5,6 +5,7 @@ from rest_framework.exceptions import  ParseError
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.permissions import IsAuthenticated
 from django.conf import settings
+from django.contrib.auth.hashers import check_password
 from django.middleware import csrf
 from django.core.paginator import Paginator
 from django.utils import timezone
@@ -298,3 +299,49 @@ def get_book_details(request, isbn):
 
     serializer = BookSerializer(book)
     return Response(serializer.data, status=status.HTTP_200_OK)
+
+@permission_classes([IsAuthenticated])
+class UpdateEmail(APIView):
+   def put(self, request):
+        user_instance = User.objects.get(email=request.user.email)
+        new_email = request.data.get('email', None)
+
+        try:
+            if new_email is not None:
+                if User.objects.filter(email=new_email).exclude(pk=user_instance.pk).exists():
+                    return Response({'error': "Email is already registered by another user"},status=status.HTTP_400_BAD_REQUEST)
+
+                user_instance.email = new_email
+                user_instance.save()
+
+                return Response({'message': 'Email updated successfully'}, status=status.HTTP_200_OK)
+            else:
+                # Email field is required
+                return Response({'error': 'Email field is required'}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            # Log the exception for debugging purposes
+            print(f"Error updating email: {e}")
+            return Response({'error': 'Internal server error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+@permission_classes([IsAuthenticated])
+class UpdatePassword(APIView):
+   def put(self, request):
+        instance = User.objects.get(email=request.user.email)
+
+        # Get user input
+        current_password = request.data.get('password', '')
+        new_password = request.data.get('new_password', '')
+        confirm_password = request.data.get('confirm_password', '')
+
+        # Check if the current password is correct
+        if not check_password(current_password, instance.password):
+            return Response({'error': 'Incorrect current password'})
+
+        # Check if the new password and confirm password match
+        if new_password == confirm_password:
+            return Response({'error': 'New password and confirm password do not match'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Update the user's password
+        instance.set_password(new_password)
+        instance.save()
+
+        return Response({'message': 'Password updated successfully'}, status=status.HTTP_200_OK)
