@@ -7,7 +7,7 @@ class BookSerializer(serializers.ModelSerializer):
     class Meta:
         model= Book
         fields = ['isbn', 'title', 'author','category' , 
-                  'pubyear' , 'language','price','description' , "cover_image"]
+                  'pubyear' , 'language','price','description' , "cover_image","reviews","reviews_score"]
 
     def create(self, validated_data):
         instance = self.Meta.model(**validated_data)
