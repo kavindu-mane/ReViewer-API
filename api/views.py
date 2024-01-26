@@ -11,7 +11,7 @@ from django.core.paginator import Paginator
 from django.utils import timezone
 from django.db.models import Q
 from rest_framework_simplejwt.views import TokenRefreshView
-from . serializers import UserProfileUpdateSerializer,ChangePasswordSerializer, UserSerializer , AccountSerializer , CookieTokenRefreshSerializer , BookSerializer, WishListSerializer
+from . serializers import UserSerializer , AccountSerializer , CookieTokenRefreshSerializer , BookSerializer, WishListSerializer
 from . models import User , Book, WishList
 from rest_framework import status
 
@@ -202,7 +202,7 @@ class CookieTokenRefreshView(TokenRefreshView):
 class GetUserView(APIView):
     def get(self ,request):
         try:
-            user = User.objects.get(email = request.user.email)
+            user = User.objects.get(id = request.user.id)
         except User.DoesNotExist:
             return Response({"details" : "User not found"})
 
@@ -227,13 +227,12 @@ class SearchBookView(APIView):
         serializer = BookSerializer(paginated_books , many = True)
         return Response({"users":serializer.data })
         
-
 # change basic info view : this view change user name birth date.
 # serializer : user serializer in serializers.py
 @permission_classes([IsAuthenticated])
 class UpdateBasic(APIView):
     def put(self, request):
-        instance = User.objects.get(email = request.user.email)
+        instance = User.objects.get(id = request.user.id)
         serializer = UserSerializer(
             instance,
             data=request.data,
@@ -241,10 +240,61 @@ class UpdateBasic(APIView):
         )
         serializer.is_valid(raise_exception=True)
         serializer.save()
-        return Response(status=status.HTTP_200_OK)
+        return Response({"details":"success"} , status=status.HTTP_200_OK)
     
+@permission_classes([IsAuthenticated])
+class UpdateEmail(APIView):
+   def put(self, request):
+        try:
+            instance = User.objects.get(id=request.user.id)
+            new_email = request.data.get('email', None)
+            user = User.objects.filter(email=new_email).first()
+
+            # check email already exist or not
+            if user is not None:
+                return Response({
+                "email" : "This email already registered",
+                "details":"error"
+            })
+
+            serializer = UserSerializer(
+                instance,
+                data=request.data,
+                partial=True
+            )
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            return Response({"details":"success"} , status=status.HTTP_200_OK)
+        except KeyError:
+            return Response({
+                "details":"error"
+            })
+
+@permission_classes([IsAuthenticated])
+class UpdatePassword(APIView):
+   def put(self, request):
+        instance = User.objects.get(id=request.user.id)
+
+        # Get user input
+        current_password = request.data.get('password', '')
+        new_password = request.data.get('new_password', '')
+        confirm_password = request.data.get('confirm_password', '')
+
+        # Check if the current password is correct
+        if not check_password(current_password, instance.password):
+            return Response({'error': 'Incorrect current password'})
+
+        # Check if the new password and confirm password match
+        if new_password == confirm_password:
+            return Response({'error': 'New password and confirm password do not match'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Update the user's password
+        instance.set_password(new_password)
+        instance.save()
+
+        return Response({'message': 'Password updated successfully'}, status=status.HTTP_200_OK)
+
 #Add Books to Wishlist
-@api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def add_to_wishlist(request):
     try:
@@ -259,7 +309,6 @@ def add_to_wishlist(request):
         return Response({"detail": "Book not found"})
     
 #Get Wishlist Status for a Book
-@api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_wishlist_status(request, book_id):
     try:
@@ -272,9 +321,7 @@ def get_wishlist_status(request, book_id):
     except Book.DoesNotExist:
         return Response({"detail": "Book not found"})
     
-
 #Remove Book from Wishlist
-@api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def remove_from_wishlist(request):
     try:
@@ -299,49 +346,3 @@ def get_book_details(request, isbn):
 
     serializer = BookSerializer(book)
     return Response(serializer.data, status=status.HTTP_200_OK)
-
-@permission_classes([IsAuthenticated])
-class UpdateEmail(APIView):
-   def put(self, request):
-        user_instance = User.objects.get(email=request.user.email)
-        new_email = request.data.get('email', None)
-
-        try:
-            if new_email is not None:
-                if User.objects.filter(email=new_email).exclude(pk=user_instance.pk).exists():
-                    return Response({'error': "Email is already registered by another user"},status=status.HTTP_400_BAD_REQUEST)
-
-                user_instance.email = new_email
-                user_instance.save()
-
-                return Response({'message': 'Email updated successfully'}, status=status.HTTP_200_OK)
-            else:
-                # Email field is required
-                return Response({'error': 'Email field is required'}, status=status.HTTP_400_BAD_REQUEST)
-        except Exception as e:
-            # Log the exception for debugging purposes
-            print(f"Error updating email: {e}")
-            return Response({'error': 'Internal server error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-@permission_classes([IsAuthenticated])
-class UpdatePassword(APIView):
-   def put(self, request):
-        instance = User.objects.get(email=request.user.email)
-
-        # Get user input
-        current_password = request.data.get('password', '')
-        new_password = request.data.get('new_password', '')
-        confirm_password = request.data.get('confirm_password', '')
-
-        # Check if the current password is correct
-        if not check_password(current_password, instance.password):
-            return Response({'error': 'Incorrect current password'})
-
-        # Check if the new password and confirm password match
-        if new_password == confirm_password:
-            return Response({'error': 'New password and confirm password do not match'}, status=status.HTTP_400_BAD_REQUEST)
-
-        # Update the user's password
-        instance.set_password(new_password)
-        instance.save()
-
-        return Response({'message': 'Password updated successfully'}, status=status.HTTP_200_OK)

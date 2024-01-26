@@ -47,43 +47,7 @@ class BookSerializer(serializers.ModelSerializer):
     class Meta:
         model = Book
         fields = ("isbn", "title","author")
-
-#get name,birthday and email details 
-class UserProfileUpdateSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = User
-        fields = ['name', 'email', 'birth_date']
-
-    def update(self, instance, validated_data):
-        instance.name = validated_data.get('name', instance.name)
-        instance.email = validated_data.get('email', instance.email)
-        instance.birth_date = validated_data.get('birth_date', instance.birth_date)
-        instance.save()
-        return instance
-    
-class ChangePasswordSerializer(serializers.Serializer):
-    new_password = serializers.CharField(write_only=True, required=True)
-    conf_password = serializers.CharField(write_only=True, required=True)
-
-    def validate(self, data):
-        new_password = data.get('new_password')
-        conf_password = data.get('conf_password')
-
-        user = self.context['request'].user
-
-        # Check if the new password and confirm password match
-        if new_password != conf_password:
-            raise serializers.ValidationError({"details": "New password and confirm password do not match"})
-
-        # Check if the current password is the same as the new password
-        if new_password and user.check_password(new_password):
-            raise serializers.ValidationError({"details": "Current password cannot be the same as the new password"})
-
-        # Validate the new password using Django's password validation
-        validate_password(new_password)
-
-        return data
-    
+  
 # WishList serializer
 class WishListSerializer(serializers.ModelSerializer):
     class Meta:
