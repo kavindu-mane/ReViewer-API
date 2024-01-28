@@ -11,8 +11,8 @@ from django.core.paginator import Paginator
 from django.utils import timezone
 from django.db.models import Q
 from rest_framework_simplejwt.views import TokenRefreshView
-from . serializers import UserSerializer , AccountSerializer , CookieTokenRefreshSerializer , BookSerializer, WishListSerializer
-from . models import User , Book, WishList
+from . serializers import UserSerializer , AccountSerializer , CookieTokenRefreshSerializer , BookSerializer, WishListSerializer, ReviewSerializer
+from . models import User , Book, WishList , Review
 from rest_framework import status
 
 # in this system use JWT tokens for authentications
@@ -354,3 +354,17 @@ def get_book_details(request, isbn):
 
     serializer = BookSerializer(book)
     return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+#Add A Review
+@api_view(['POST'])
+def Review_rate(request):
+    if request.method == "POST":
+        data = request.data
+        data.book_id = request.POST.get('isbn')
+        data.user_id = request.user.id
+        serializer = ReviewSerializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response({"rated": "success"})
+    
