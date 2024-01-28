@@ -46,7 +46,7 @@ class CookieTokenRefreshSerializer(TokenRefreshSerializer):
 class BookSerializer(serializers.ModelSerializer):
     class Meta:
         model = Book
-        fields = ("isbn", "title","author")
+        fields = "__all__"
   
 # WishList serializer
 class WishListSerializer(serializers.ModelSerializer):
