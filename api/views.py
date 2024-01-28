@@ -273,26 +273,34 @@ class UpdateEmail(APIView):
 @permission_classes([IsAuthenticated])
 class UpdatePassword(APIView):
    def put(self, request):
-        instance = User.objects.get(id=request.user.id)
+        instance = User.objects.filter(id=request.user.id).first()
 
         # Get user input
-        current_password = request.data.get('password', '')
-        new_password = request.data.get('new_password', '')
-        confirm_password = request.data.get('confirm_password', '')
+        current_password = request.data.get('current_password')
+        new_password = request.data.get('new_password')
+        confirm_password = request.data.get('conf_password')
 
         # Check if the current password is correct
-        if not check_password(current_password, instance.password):
-            return Response({'error': 'Incorrect current password'})
+        if not instance.check_password(current_password):
+            return Response({'currentpassword': 'Incorrect current password' , 'details':'error'})
 
+        # Check if the new password and current password match
+        if new_password == current_password:
+            return Response({'newpassword': 'New password and current password are same',
+                             'currentpassword': 'New password and current password are same',
+                            'details':'error'})
+        
         # Check if the new password and confirm password match
-        if new_password == confirm_password:
-            return Response({'error': 'New password and confirm password do not match'}, status=status.HTTP_400_BAD_REQUEST)
+        if new_password != confirm_password:
+            return Response({'newpassword': 'New password and confirm password not match',
+                             'confpassword': 'New password and confirm password not match', 
+                            'details':'error'})
 
         # Update the user's password
         instance.set_password(new_password)
         instance.save()
 
-        return Response({'message': 'Password updated successfully'}, status=status.HTTP_200_OK)
+        return Response({'details': "success"}, status=status.HTTP_200_OK)
 
 #Add Books to Wishlist
 @permission_classes([IsAuthenticated])
