@@ -3,7 +3,7 @@ from django.contrib.auth import get_user_model
 from rest_framework_simplejwt.serializers import TokenRefreshSerializer
 from django.contrib.auth.password_validation import validate_password
 from rest_framework_simplejwt.exceptions import InvalidToken
-from . models import User , Book, WishList
+from . models import User , Book, WishList, Review
 
 # user serializer : this use for user regiatrations
 class UserSerializer(serializers.ModelSerializer):
@@ -53,3 +53,10 @@ class WishListSerializer(serializers.ModelSerializer):
     class Meta:
         model = WishList
         fields = ['id', 'user', 'book']
+
+#Review Serializer
+        
+class ReviewSerializer(serializers.ModelSerializer) :
+    class Meta:
+        model = Review
+        fields = "__all__"    

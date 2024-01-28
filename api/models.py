@@ -43,3 +43,13 @@ class WishList(models.Model):
     isbn = models.CharField(max_length = 50)
     email= models.EmailField(max_length=200)
 
+#Review Model
+class Review(models.Model):
+    user = models.ForeignKey(User, models.CASCADE,default=None)
+    review = models.TextField(max_length=1024,default=None)
+    rate = models.IntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    book = models.ForeignKey(Book,models.CASCADE,default=None)
+        
+def _str_(self):
+    return str()
