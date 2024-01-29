@@ -1,5 +1,5 @@
 from django.urls import path
-from .views_admin import getUsers , changeUserStatus , addNewBook,getBooks
+from .views_admin import *
 
 # urls for admin : this will redirect if requested url start with api/admim
 urlpatterns = [
@@ -7,4 +7,6 @@ urlpatterns = [
     path('users/update/', changeUserStatus.as_view()),
     path('books/add/', addNewBook.as_view()),
     path('books/', getBooks.as_view()),
+    path('dashboard/<str:type>/', GetAdminStats.as_view()),
+
 ]

@@ -5,13 +5,12 @@ from rest_framework.exceptions import  ParseError
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.permissions import IsAuthenticated
 from django.conf import settings
-from django.contrib.auth.hashers import check_password
 from django.middleware import csrf
 from django.core.paginator import Paginator
 from django.utils import timezone
-from django.db.models import Q
+from django.db.models import Q 
 from rest_framework_simplejwt.views import TokenRefreshView
-from . serializers import UserSerializer , AccountSerializer , CookieTokenRefreshSerializer , BookSerializer, WishListSerializer, ReviewSerializer
+from . serializers import *
 from . models import User , Book, WishList , Review
 from rest_framework import status
 
@@ -243,6 +242,19 @@ class UpdateBasic(APIView):
         return Response({"details":"success"} , status=status.HTTP_200_OK)
     
 @permission_classes([IsAuthenticated])
+class UpdateProfilePic(APIView):
+    def put(self, request):
+        instance = User.objects.get(id = request.user.id)
+        serializer = AccountSerializer(
+            instance,
+            data=request.data,
+            partial=True
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response({"details":"success"} , status=status.HTTP_200_OK)
+    
+@permission_classes([IsAuthenticated])
 class UpdateEmail(APIView):
    def put(self, request):
         try:
@@ -302,46 +314,78 @@ class UpdatePassword(APIView):
 
         return Response({'details': "success"}, status=status.HTTP_200_OK)
 
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_user_review(request ,page = 1):
+    reviews = Review.objects.filter(user = request.user.id)
+    paginator = Paginator(reviews, 5)
+    paginated_reviews = paginator.get_page(page)
+    serializer = ReviewReturnSerializer(paginated_reviews , many = True)
+    return Response({"reviews":serializer.data , 
+        "meta":{
+            "count":paginator.count , 
+            "page_count":paginator.num_pages,
+            "start":paginated_reviews.start_index(),
+            "end":paginated_reviews.end_index()
+            }
+        })
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_user_wishlist(request ,page = 1):
+    wishlist = WishList.objects.filter(user = request.user.id)
+    paginator = Paginator(wishlist, 5)
+    paginated_wishlist = paginator.get_page(page)
+    serializer = WishListReturnSerializer(paginated_wishlist , many = True)
+    return Response({"wishlist":serializer.data , 
+        "meta":{
+            "count":paginator.count , 
+            "page_count":paginator.num_pages,
+            "start":paginated_wishlist.start_index(),
+            "end":paginated_wishlist.end_index()
+            }
+        })
+
 #Add Books to Wishlist
 @permission_classes([IsAuthenticated])
-def add_to_wishlist(request):
+@api_view(['POST'])
+def add_to_wishlist(request , isbn):
     try:
-        book_id = request.data.get("book_id")
-        book = Book.objects.get(pk=book_id)
-        wishlist_item, created = WishList.objects.get_or_create(user=request.user, book=book)
-        if not created:
-            return Response({"detail": "Book already in wishlist"})
-        serializer = WishListSerializer(wishlist_item)
-        return Response({"detail": "Book added to wishlist", "wishlist_item": serializer.data})
+        data = request.data
+        data["user"] = request.user.id
+        data["book"] = isbn
+        serializer = WishListSerializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response({"detail": "Book added to wishlist"})
     except Book.DoesNotExist:
-        return Response({"detail": "Book not found"})
+        return Response({"detail": "Something went wrong"})
     
+#Remove Book from Wishlist
+@permission_classes([IsAuthenticated])
+@api_view(['POST'])
+def remove_from_wishlist(request,isbn):
+    try:
+        wishlist_item = WishList.objects.filter(user=request.user.id, book=isbn)
+        if wishlist_item:
+            wishlist_item.delete()
+            return Response({"detail": "Book added to wishlist"})
+        else:
+            return Response({"detail": "No wishlist item found"} , status=status.HTTP_404_NOT_FOUND)
+    except Book.DoesNotExist:
+        return Response({"detail": "Something went wrong"})
+
 #Get Wishlist Status for a Book
 @permission_classes([IsAuthenticated])
-def get_wishlist_status(request, book_id):
+@api_view(['GET'])
+def get_wishlist_status(request, isbn):
     try:
-        book = Book.objects.get(pk=book_id)
-        wishlist_item = WishList.objects.filter(user=request.user, book=book).first()
+        wishlist_item = WishList.objects.filter(user=request.user.id, book=isbn)
         if wishlist_item:
             return Response({"is_in_wishlist": True})
         else:
             return Response({"is_in_wishlist": False})
-    except Book.DoesNotExist:
-        return Response({"detail": "Book not found"})
-    
-#Remove Book from Wishlist
-@permission_classes([IsAuthenticated])
-def remove_from_wishlist(request):
-    try:
-        book_id = request.data.get("book_id")
-        book = Book.objects.get(pk=book_id)
-        wishlist_item = WishList.objects.filter(user=request.user, book=book).first()
-        if wishlist_item:
-            wishlist_item.delete()
-            return Response({"detail": "Book removed from wishlist"})
-        else:
-            return Response({"detail": "Book not found in wishlist"})
-    except Book.DoesNotExist:
+    except :
         return Response({"detail": "Book not found"})
 
 #Get Books details   
@@ -355,16 +399,40 @@ def get_book_details(request, isbn):
     serializer = BookSerializer(book)
     return Response(serializer.data, status=status.HTTP_200_OK)
 
-
 #Add A Review
+@permission_classes([IsAuthenticated])
 @api_view(['POST'])
-def Review_rate(request):
-    if request.method == "POST":
-        data = request.data
-        data.book_id = request.POST.get('isbn')
-        data.user_id = request.user.id
-        serializer = ReviewSerializer(data=data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response({"rated": "success"})
+def review_rate(request , isbn):
+    data = request.data
+    data["book"]= isbn
+    data["user"] = request.user.id
+    serializer = ReviewSerializer(data=data)
+    serializer.is_valid(raise_exception=True)
+    serializer.save()
+
+    book = Book.objects.filter(isbn=isbn).first()
+    book.reviews_score += data.get("rate")      
+    book.reviews += 1    
+    book.save()
+    return Response({"rated": "success"})
     
+@api_view(['GET'])
+def get_review(request, isbn ,page = 1 , sort = "ratings"):
+    reviews = Review.objects.filter(book = isbn)
+    if sort == "ratings":
+        reviews = reviews.order_by("rate").reverse()
+    elif sort == "newest":
+        reviews = reviews.order_by("created_at").reverse()
+    else:
+        reviews = reviews.order_by("created_at")
+    paginator = Paginator(reviews, 10)
+    paginated_reviews = paginator.get_page(page)
+    serializer = ReviewReturnSerializer(paginated_reviews , many = True)
+    return Response({"reviews":serializer.data , 
+        "meta":{
+            "count":paginator.count , 
+            "page_count":paginator.num_pages,
+            "start":paginated_reviews.start_index(),
+            "end":paginated_reviews.end_index()
+            }
+        })

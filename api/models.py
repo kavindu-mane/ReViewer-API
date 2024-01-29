@@ -5,6 +5,10 @@ from django.contrib.auth.models import AbstractUser
 def upload_to(instance, filename):
     return 'books/{filename}.{ext}'.format(filename=instance.pk , ext = filename.split('.')[-1])
 
+# upload file with renaming files
+def upload_to_user(instance, filename):
+    return 'users/{filename}.{ext}'.format(filename=instance.pk , ext = filename.split('.')[-1])
+
 # user model : its override the djangp abstract user
 class User(AbstractUser):
     id = models.AutoField(primary_key = True)
@@ -12,11 +16,13 @@ class User(AbstractUser):
     name = models.CharField(max_length=256)
     password = models.CharField(max_length=1024)
     birth_date = models.CharField(max_length=30)
-    avatar = models.ImageField(upload_to=upload_to , default="users/default_user.svg")
+    avatar = models.ImageField(upload_to=upload_to_user , default="users/default_user.svg")
+    created_at = models.DateTimeField(auto_now_add=True)
     username = None
     first_name = None
     last_name = None
     is_staff = None
+    date_joined = None
 
     USERNAME_FIELD = 'id'
     REQUIRED_FIELDS = [name , email , password , id]
@@ -33,6 +39,7 @@ class Book(models.Model):
     description = models.CharField(max_length = 1024)
     reviews = models.PositiveSmallIntegerField(default = 0)
     reviews_score = models.PositiveSmallIntegerField(default = 0)
+    created_at = models.DateTimeField(auto_now_add=True)
     cover_image = models.ImageField(upload_to=upload_to , default="books/default.png")
 
     REQUIRED_FIELDS = [isbn , title , author , category , pubyear , language , price , description]
@@ -40,16 +47,15 @@ class Book(models.Model):
 # wish list model
 class WishList(models.Model):
     id = models.AutoField(primary_key = True)
-    isbn = models.CharField(max_length = 50)
-    email= models.EmailField(max_length=200)
+    book = models.ForeignKey(Book , on_delete=models.CASCADE)
+    user= models.ForeignKey(User , on_delete=models.CASCADE)
 
 #Review Model
 class Review(models.Model):
-    user = models.ForeignKey(User, models.CASCADE,default=None)
     review = models.TextField(max_length=1024,default=None)
-    rate = models.IntegerField(default=0)
+    rate = models.IntegerField(default=1)
     created_at = models.DateTimeField(auto_now_add=True)
     book = models.ForeignKey(Book,models.CASCADE,default=None)
-        
-def _str_(self):
-    return str()
+    user = models.ForeignKey(User, models.CASCADE,default=None)
+
+    REQUIRED_FIELDS = [user , review , rate , book]
