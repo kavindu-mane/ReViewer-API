@@ -412,7 +412,7 @@ def review_rate(request , isbn):
 
     book = Book.objects.filter(isbn=isbn).first()
     book.reviews_score += data.get("rate")      
-    book.reviews += 1    
+    book.reviews += 1
     book.save()
     return Response({"rated": "success"})
     
@@ -425,7 +425,7 @@ def get_review(request, isbn ,page = 1 , sort = "ratings"):
         reviews = reviews.order_by("created_at").reverse()
     else:
         reviews = reviews.order_by("created_at")
-    paginator = Paginator(reviews, 10)
+    paginator = Paginator(reviews, 5)
     paginated_reviews = paginator.get_page(page)
     serializer = ReviewReturnSerializer(paginated_reviews , many = True)
     return Response({"reviews":serializer.data , 

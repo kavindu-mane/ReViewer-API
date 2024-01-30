@@ -27,7 +27,7 @@ class UserSerializer(serializers.ModelSerializer):
 class AccountSerializer(serializers.ModelSerializer):
     class Meta:
         model = get_user_model()
-        fields = ("name", "email","birth_date","avatar")
+        fields = ["name", "email","birth_date","avatar"]
 
 # cookie refresh serializer : this one use for refresh access tokens (JWT) using refrsh tokens
 class CookieTokenRefreshSerializer(TokenRefreshSerializer):
@@ -73,4 +73,3 @@ class ReviewReturnSerializer(serializers.ModelSerializer) :
     class Meta:
         model = Review
         fields = "__all__"
-

@@ -56,6 +56,6 @@ class Review(models.Model):
     rate = models.IntegerField(default=1)
     created_at = models.DateTimeField(auto_now_add=True)
     book = models.ForeignKey(Book,models.CASCADE,default=None)
-    user = models.ForeignKey(User, models.CASCADE,default=None)
+    user = models.ForeignKey(User, models.CASCADE,default=None , related_name="review_user")
 
     REQUIRED_FIELDS = [user , review , rate , book]

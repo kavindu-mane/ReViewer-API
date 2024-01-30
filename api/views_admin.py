@@ -1,8 +1,7 @@
 from rest_framework.views import APIView
 from django.db.models import Q , Count
 from . models import User , Book , Review
-from . serializers_admin import  BookSerializer
-from . serializers import AccountSerializer
+from . serializers_admin import  BookSerializer , UserAccountSerializer
 from django.core.paginator import Paginator
 from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied
@@ -27,11 +26,11 @@ class getUsers(APIView):
                 users = User.objects.filter(is_superuser=0 , is_active=(active == "active")).order_by("name")
             else:
                 search = request.data["search"]
-                users = User.objects.filter((Q(name__icontains=search) | Q(email__icontains=search)) & Q(is_superuser=0)).order_by("name")
+                users = User.objects.filter((Q(name__icontains=search) | Q(email__icontains=search)) & Q(is_superuser=0))
 
             paginator = Paginator(users, 25)
             paginated_users = paginator.get_page(page)
-            serializer = AccountSerializer(paginated_users , many = True)
+            serializer = UserAccountSerializer(paginated_users , many = True)
             return Response({"users":serializer.data , 
                             "meta":{
                                 "count":paginator.count , 
@@ -106,7 +105,7 @@ class addNewBook(APIView):
                 # check isbn already exist or not
                 if book is not None:
                     return Response({
-                    "isbn" : "This isbn already registered"
+                    "isbn" : "This ISBN already registered"
                 })
                 serializer = BookSerializer(data=request.data)
                 serializer.is_valid(raise_exception=True)
@@ -126,7 +125,8 @@ class addNewBook(APIView):
 class GetAdminStats(APIView):
     def get(self , request , type):
         try:
-            time  = timezone.now().date() - timedelta(days=7)           
+            time_new  = timezone.now().date() - timedelta(days=7)  
+            time_old_end  = timezone.now().date() - timedelta(days=6)           
             time_old  = timezone.now().date() - timedelta(days=14)
             model = Book
             if type == "users": 
@@ -135,8 +135,8 @@ class GetAdminStats(APIView):
                 model = Review
 
             if request.user.is_superuser:
-                # books new
-                books = model.objects.filter(created_at__gte=time
+                # details new
+                details = model.objects.filter(created_at__gte=time_old_end
                 ).annotate(
                     day=TruncDay('created_at__date'),
                     created_count=Count('created_at__date')
@@ -146,19 +146,19 @@ class GetAdminStats(APIView):
                     created_count=Count('created_at__date')
                 ).order_by('day')
 
-                books = list(books)
+                details = list(details)
 
                 for i in range(7):
-                    new_date = time + timedelta(days=i + 1)
-                    result_list = [d["day"] for d in books]
+                    new_date = time_new + timedelta(days=i+1)
+                    result_list = [d["day"] for d in details]
                     if new_date not in result_list:
-                        books.append({'day': new_date, 'created_count': 0})
-                books = sorted(books, key=lambda x: x['day'])
+                        details.append({'day': new_date, 'created_count': 0})
+                details = sorted(details, key=lambda x: x['day'])
                 
 
-                # books old
-                books_old = model.objects.filter(created_at__gte=time_old,
-                                                created_at__lte=time
+                # details old
+                details_old = model.objects.filter(created_at__gte=time_old,
+                                                created_at__lte=time_old_end
                 ).annotate(
                     day=TruncDay('created_at__date'),
                     created_count=Count('created_at__date')
@@ -168,17 +168,17 @@ class GetAdminStats(APIView):
                     created_count=Count('created_at__date')
                 ).order_by('day')
 
-                books_old = list(books_old)
+                details_old = list(details_old)
 
                 for i in range(7):
                     new_date = time_old + timedelta(days=i+1)
-                    result_list = [d["day"] for d in books_old]
+                    result_list = [d["day"] for d in details_old]
                     if new_date not in result_list:
-                        books_old.append({'day': new_date, 'created_count': 0})
-                books_old = sorted(books_old, key=lambda x: x['day'])
+                        details_old.append({'day': new_date, 'created_count': 0})
+                details_old = sorted(details_old, key=lambda x: x['day'])
                 return Response({
-                    "new":books,
-                    "old":books_old
+                    "new":details,
+                    "old":details_old
                 })
             else:
                 return Response({
