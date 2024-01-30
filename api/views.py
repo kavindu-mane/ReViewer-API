@@ -369,7 +369,7 @@ def remove_from_wishlist(request,isbn):
         wishlist_item = WishList.objects.filter(user=request.user.id, book=isbn)
         if wishlist_item:
             wishlist_item.delete()
-            return Response({"detail": "Book added to wishlist"})
+            return Response({"detail": "Book remove from wishlist"})
         else:
             return Response({"detail": "No wishlist item found"} , status=status.HTTP_404_NOT_FOUND)
     except Book.DoesNotExist:
